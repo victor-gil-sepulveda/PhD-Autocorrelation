@@ -3,12 +3,31 @@ from pyRMSD.utils.proteinReading import Reader
 from pyRMSD.RMSDCalculator import RMSDCalculator
 import argparse
 import matplotlib.pylab as plt
+import prody
 
 # Possible errors were: 
 # - When skipping first frame is no longer the same for all trajectories
 # - It makes sense to use iterposition (superimposition with mean structure), as we subtract the mean 
 # - Each trajectory and coordinate must be analysed separately
 
+
+def get_coords_and_superimpose_with_prody(trajectories, skip, max_frames, iterpose = True):
+    all_coordsets = []
+    for traj_path in trajectories:
+        trajectory = prody.parsePDB(traj_path, subset='calpha')
+        coordinates = trajectory.getCoordsets()
+
+        ensembleTrajectory = prody.PDBEnsemble("Complex")
+        ensembleTrajectory.setAtoms(trajectory)
+        ensembleTrajectory.addCoordset(coordinates[skip : min(trajectory.numCoordsets(),max_frames+skip)]) 
+        ensembleTrajectory.setCoords(coordinates[0]) #reference
+        if iterpose:
+            print "\t- Using iterposition on trajectory"
+            ensembleTrajectory.iterpose()
+        else:
+            ensembleTrajectory.superpose()
+        all_coordsets.append(ensembleTrajectory.getCoordsets())
+    return numpy.array(all_coordsets)
 
 def get_coordinates(trajectories, skip, max_frames):
     all_coordsets = []
@@ -156,9 +175,12 @@ if __name__ == "__main__":
 
     print 'Loading coordinates ...'
     all_coordsets = get_coordinates(options.files, options.skip, options.max_frames)
-    
+     
     print 'Superimposing ...'
     all_superimposed_coordsets = superimpose_coordinates(all_coordsets, options.iterpose)
+    
+#     all_superimposed_coordsets =  get_coords_and_superimpose_with_prody(options.files, options.skip, 
+#                                                                         options.max_frames, options.iterpose)
     
     print 'Reshaping ...'
     num_trajs, num_frames, num_atoms, coords_per_atom = all_superimposed_coordsets.shape
