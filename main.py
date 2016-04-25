@@ -27,7 +27,7 @@ def get_coords_and_superimpose_with_prody(trajectories, skip, max_frames, iterpo
         else:
             ensembleTrajectory.superpose()
         all_coordsets.append(ensembleTrajectory.getCoordsets())
-    return numpy.array(all_coordsets)
+    return all_coordsets
 
 def get_coordinates(trajectories, skip, max_frames):
     all_coordsets = []
@@ -49,12 +49,12 @@ def superimpose_coordinates(all_coordsets, iterpose = True):
             calculator.iterativeSuperposition()
             print coordsets[0]
             all_superimposed_coordsets.append(coordsets)
-#         else:
-#             print "\t- Superimposing with first trajectory frame (shape ", coordsets.shape, ")"
-#             _, superimposed_coordsets = calculator.oneVsTheOthers(0, get_superposed_coordinates = True)
+        else:
+            print "\t- Superimposing with first trajectory frame (shape ", coordsets.shape, ")"
+            _, superimposed_coordsets = calculator.oneVsTheOthers(0, get_superposed_coordinates = True)
 #             print superimposed_coordsets[0]
 #             exit()
-#             all_superimposed_coordsets.append(superimposed_coordsets)
+            all_superimposed_coordsets.append(superimposed_coordsets)
     return numpy.array(all_superimposed_coordsets)
 
 def get_num_frames_per_trajectory(all_coordsets):
@@ -173,16 +173,17 @@ if __name__ == "__main__":
     parser.add_argument("files", nargs='+', help="PDB trajectory files to use")
     options = parser.parse_args()
 
-    print 'Loading coordinates ...'
-    all_coordsets = get_coordinates(options.files, options.skip, options.max_frames)
-     
-    print 'Superimposing ...'
-    all_superimposed_coordsets = superimpose_coordinates(all_coordsets, options.iterpose)
+#     print 'Loading coordinates ...'
+#     all_coordsets = get_coordinates(options.files, options.skip, options.max_frames)
+#      
+#     print 'Superimposing ...'
+#     all_superimposed_coordsets = superimpose_coordinates(all_coordsets, options.iterpose)
     
-#     all_superimposed_coordsets =  get_coords_and_superimpose_with_prody(options.files, options.skip, 
-#                                                                         options.max_frames, options.iterpose)
+    all_superimposed_coordsets =  get_coords_and_superimpose_with_prody(options.files, options.skip, 
+                                                                        options.max_frames, options.iterpose)
     
     print 'Reshaping ...'
+    print all_superimposed_coordsets.shape
     num_trajs, num_frames, num_atoms, coords_per_atom = all_superimposed_coordsets.shape
     all_superimposed_coordsets = all_superimposed_coordsets.reshape((num_trajs, num_frames, num_atoms*coords_per_atom))
     
