@@ -34,7 +34,7 @@ def get_coordinates(trajectories, skip, max_frames):
     for traj_path in trajectories:
         coords = Reader().readThisFile(traj_path).gettingOnlyCAs().read()
         all_coordsets.append(coords[skip : min(len(coords),max_frames+skip)])
-    return numpy.array(all_coordsets)
+    return all_coordsets
 
 def superimpose_coordinates(all_coordsets, iterpose = True):
     all_superimposed_coordsets = []
@@ -45,17 +45,13 @@ def superimpose_coordinates(all_coordsets, iterpose = True):
         
         if iterpose:
             print "\t- Using iterposition on trajectory (shape ", coordsets.shape, ")"
-            print coordsets[0]
             calculator.iterativeSuperposition()
-            print coordsets[0]
             all_superimposed_coordsets.append(coordsets)
         else:
             print "\t- Superimposing with first trajectory frame (shape ", coordsets.shape, ")"
             _, superimposed_coordsets = calculator.oneVsTheOthers(0, get_superposed_coordinates = True)
-#             print superimposed_coordsets[0]
-#             exit()
             all_superimposed_coordsets.append(superimposed_coordsets)
-    return numpy.array(all_superimposed_coordsets)
+    return all_superimposed_coordsets
 
 def get_num_frames_per_trajectory(all_coordsets):
     num_frames = []
@@ -173,19 +169,19 @@ if __name__ == "__main__":
     parser.add_argument("files", nargs='+', help="PDB trajectory files to use")
     options = parser.parse_args()
 
-#     print 'Loading coordinates ...'
-#     all_coordsets = get_coordinates(options.files, options.skip, options.max_frames)
-#      
-#     print 'Superimposing ...'
-#     all_superimposed_coordsets = superimpose_coordinates(all_coordsets, options.iterpose)
-    
-    all_superimposed_coordsets =  get_coords_and_superimpose_with_prody(options.files, options.skip, 
-                                                                        options.max_frames, options.iterpose)
-    
+    print 'Loading coordinates ...'
+    all_coordsets = get_coordinates(options.files, options.skip, options.max_frames)
+      
+    print 'Superimposing ...'
+    all_superimposed_coordsets = superimpose_coordinates(all_coordsets, options.iterpose)
+#     
+#     all_superimposed_coordsets =  get_coords_and_superimpose_with_prody(options.files, options.skip, 
+#                                                                         options.max_frames, options.iterpose)
+#     
     print 'Reshaping ...'
-    print all_superimposed_coordsets.shape
-    num_trajs, num_frames, num_atoms, coords_per_atom = all_superimposed_coordsets.shape
-    all_superimposed_coordsets = all_superimposed_coordsets.reshape((num_trajs, num_frames, num_atoms*coords_per_atom))
+    for traj_coordsets in all_superimposed_coordsets:
+        num_frames, num_atoms, coords_per_atom = traj_coordsets.shape
+        traj_coordsets.shape = (num_frames, num_atoms*coords_per_atom)
     
     print 'Computing mean positions ...'
     averages, std_devs = computeMeanCoordinatesForEachTrajectory(all_superimposed_coordsets)
@@ -198,7 +194,7 @@ if __name__ == "__main__":
         autocorr_mean, autocorr_std = average_all_per_coordinate_autocorrelations(per_trajectory_per_coordinate_autocorrelations)
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
-        ax.plot(autocorr_mean)
+        ax.errorbar(x = range(len(autocorr_mean)), y = autocorr_mean, yerr = autocorr_std)
         plt.show()
     else:
         autocorr_per_c_mean = average_per_coordinate_autocorrelations(per_trajectory_per_coordinate_autocorrelations)
