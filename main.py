@@ -4,6 +4,7 @@ from pyRMSD.RMSDCalculator import RMSDCalculator
 import argparse
 import matplotlib.pylab as plt
 import prody
+from tools import add_all_trajectories_rejected_from_report
 
 # Possible errors were: 
 # - When skipping first frame is no longer the same for all trajectories
@@ -161,11 +162,12 @@ if __name__ == "__main__":
     
     desc = "Calculates the autocorrelation for a set of trajectories and atoms"
     parser = argparse.ArgumentParser(description=desc)
-    parser.add_argument("-o", "--output", help="Output filename", default="/tmp/autocorr.txt")
     parser.add_argument("-a", "--average", help="Average coordinate correlations", action="store_true")
     parser.add_argument("-i", "--iterpose", help="Perform iterposition instead of superposition with first", action="store_true")
     parser.add_argument("-m", "--max_frames", type=int, help="Maximum number of frames to be used from each trajectory", default=100)
     parser.add_argument("-s", "--skip", type=int, help="Skip first N frames of each trajectory", default=20)
+    parser.add_argument("-r", "--report", default=None, help="Searches for report files with the given base path (E.g. '-r results/report')")
+    
     parser.add_argument("files", nargs='+', help="PDB trajectory files to use")
     options = parser.parse_args()
 
@@ -174,10 +176,18 @@ if __name__ == "__main__":
       
     print 'Superimposing ...'
     all_superimposed_coordsets = superimpose_coordinates(all_coordsets, options.iterpose)
-#     
+    
 #     all_superimposed_coordsets =  get_coords_and_superimpose_with_prody(options.files, options.skip, 
 #                                                                         options.max_frames, options.iterpose)
-#     
+
+    print all_superimposed_coordsets[0].shape
+    if options.report is not None:
+        print 'Inflating using report ...'
+        all_superimposed_coordsets = add_all_trajectories_rejected_from_report(options.files, 
+                                                                               all_superimposed_coordsets, 
+                                                                               options.report)
+    print all_superimposed_coordsets[0].shape
+    
     print 'Reshaping ...'
     for traj_coordsets in all_superimposed_coordsets:
         num_frames, num_atoms, coords_per_atom = traj_coordsets.shape
